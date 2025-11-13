@@ -1,6 +1,6 @@
 import Header from "@/components/header";
 import Dashboard from "@/components/dashboard";
-import { UserProfile } from "@/components/user-profile";
+import { UserProfileLive } from "@/components/user-profile-live";
 import Footer from "@/components/footer";
 import CryptoMarketListClient from "@/components/crypto-market-list-client";
 import { getMarkets, getTrades } from "@/lib/gamma";
@@ -96,7 +96,7 @@ export default async function Home() {
             )}
           </div>
           <div>
-            <UserProfile user={mostActiveTrader} />
+            <UserProfileLive handle="fengdubiying" />
           </div>
         </div>
       </main>

@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMarketAnalysis } from '@/lib/open-router';
+import { getMarketAnalysis, AnalysisResult } from '@/lib/open-router';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '@/components/ui/use-toast';
 
 export function MarketAnalysis({ marketQuestion }: { marketQuestion: string }) {
   const [analysis, setAnalysis] = useState<string>('Loading analysis...');
   const [error, setError] = useState<string | null>(null);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!marketQuestion) return;
@@ -30,32 +33,36 @@ export function MarketAnalysis({ marketQuestion }: { marketQuestion: string }) {
 
     // Fetch new analysis
     getMarketAnalysis(marketQuestion)
-      .then((newAnalysis) => {
-        const cleanedAnalysis = newAnalysis.replace(/<\|begin_of_sentence\|>/g, '').trim();
-        
-        // Save to cache (only on client)
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem(
-              marketQuestion,
-              JSON.stringify({ analysis: cleanedAnalysis, timestamp: Date.now() })
-            );
-          } catch (err) {
-            console.error('Error writing to localStorage:', err);
+      .then((res: AnalysisResult) => {
+        if (res.latencyMs != null) setLatencyMs(res.latencyMs)
+        if (res.ok && res.content) {
+          const cleanedAnalysis = res.content.replace(/<\|begin_of_sentence\|>/g, '').trim()
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(
+                marketQuestion,
+                JSON.stringify({ analysis: cleanedAnalysis, timestamp: Date.now() })
+              )
+            } catch {}
           }
+          setAnalysis(cleanedAnalysis)
+          setError(null)
+          toast({ title: 'AI Ready', description: `${res.latencyMs ?? 0}ms`, variant: 'default' })
+        } else {
+          setError('Failed to load analysis.')
+          toast({ title: 'AI Error', description: res.errorCode || 'unknown', variant: 'destructive' })
         }
-        
-        setAnalysis(cleanedAnalysis);
       })
-      .catch((err) => {
-        console.error('Error fetching analysis:', err);
-        setError('Failed to load analysis. Please try again later.');
-      });
+      .catch(() => {
+        setError('Failed to load analysis.')
+        toast({ title: 'AI Error', description: 'network', variant: 'destructive' })
+      })
   }, [marketQuestion]);
 
   return (
     <div className="neumorphic-inset p-4 rounded-lg prose dark:prose-invert max-w-none">
       <h2 className="text-xl font-bold mb-2">AI Analysis</h2>
+      {latencyMs != null ? (<p className="text-xs text-text-secondary">Latency: {latencyMs}ms</p>) : null}
       {error ? (
         <p className="text-red-500">{error}</p>
       ) : (
