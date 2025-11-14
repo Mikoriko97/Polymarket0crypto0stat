@@ -7,7 +7,7 @@ export default function Footer() {
           <div className="text-sm text-muted-foreground">© 2025 Polymarket Analytics. All rights reserved.</div>
 
           {/* Right: Created by */}
-          <div className="text-sm font-bold text-blue-600 dark:text-blue-400">Created for Polymarket by QAZZAQ</div>
+          <div className="text-sm font-bold text-blue-600 dark:text-blue-400"><a href="https://x.com/qazzaq_eth" target="_blank" rel="noopener noreferrer">Created for Polymarket by QAZZAQ</a></div>
         </div>
       </div>
     </footer>

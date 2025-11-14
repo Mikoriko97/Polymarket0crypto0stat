@@ -1,6 +1,6 @@
 import Header from "@/components/header";
 import Dashboard from "@/components/dashboard";
-import { UserProfileLive } from "@/components/user-profile-live";
+import { UserProfilesRotator } from "@/components/user-profiles-rotator";
 import Footer from "@/components/footer";
 import CryptoMarketListClient from "@/components/crypto-market-list-client";
 import { getMarkets, getTrades } from "@/lib/gamma";
@@ -72,11 +72,6 @@ export default async function Home() {
     return acc;
   }, {} as UserTradesAccumulator);
 
-  const mostActiveTraderAddress = Object.keys(userTrades).reduce((a, b) =>
-    userTrades[a].volume > userTrades[b].volume ? a : b
-  );
-
-  const mostActiveTrader = userTrades[mostActiveTraderAddress];
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col">
@@ -96,7 +91,7 @@ export default async function Home() {
             )}
           </div>
           <div>
-            <UserProfileLive handle="fengdubiying" />
+            <UserProfilesRotator intervalMs={12000} />
           </div>
         </div>
       </main>
