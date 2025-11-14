@@ -43,9 +43,9 @@ export function UserProfilesRotator({ addresses = [], handles = [], intervalMs =
     fetch(`/api/leaderboard`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((json) => {
-        const h: Target[] = Array.isArray(json.handles) ? json.handles.map((x: string) => ({ handle: x })) : []
         const a: Target[] = Array.isArray(json.addresses) ? json.addresses.map((x: string) => ({ address: x })) : []
-        const next = [...h, ...a]
+        const h: Target[] = a.length ? [] : (Array.isArray(json.handles) ? json.handles.map((x: string) => ({ handle: x })) : [])
+        const next = a.length ? a : h
         if (next.length) setTargets(next)
       })
       .catch(() => {})
@@ -57,21 +57,16 @@ export function UserProfilesRotator({ addresses = [], handles = [], intervalMs =
     const t = targets[(index % len + len) % len]
     if (!t) return
     let url = ""
-    if (t.address) url = `/api/user-trades?address=${encodeURIComponent(String(t.address))}&limit=200`
-    else if (t.handle) url = `/api/user-trades?handle=${encodeURIComponent(String(t.handle))}&limit=200`
+    if (t.address) url = `/api/user-stats?address=${encodeURIComponent(String(t.address))}`
+    else if (t.handle) url = `/api/user-stats?handle=${encodeURIComponent(String(t.handle))}`
     else return
     fetch(url, { cache: 'no-store' })
       .then((r) => r.json())
       .then(async (json) => {
-        setStats(json.stats || { volume: 0, tradeCount: 0, pnl: 0 })
+        const st = json.stats || {}
+        setStats({ volume: 0, tradeCount: st.tradeCount ?? 0, pnl: st.pnl ?? 0 })
         setAddress(json.address || t.address || null)
         if (t.handle) setHandle(t.handle)
-        if (!t.handle && json.address) {
-          try {
-            const rh = await fetch(`/api/resolve-handle?address=${encodeURIComponent(json.address)}`).then((r) => r.json())
-            if (rh.handle) setHandle(rh.handle)
-          } catch {}
-        }
       })
       .catch(() => {
         setStats({ volume: 0, tradeCount: 0, pnl: 0 })
@@ -101,7 +96,7 @@ export function UserProfilesRotator({ addresses = [], handles = [], intervalMs =
           <p className={`text-2xl font-bold ${stats.pnl > 0 ? 'text-emerald-600' : stats.pnl < 0 ? 'text-red-600' : ''}`}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.pnl)}</p>
         </div>
         <div className="grid gap-1">
-          <p className="text-sm font-medium">Кількість трейдів</p>
+          <p className="text-sm font-medium">Total Trades</p>
           <p className="text-2xl font-bold">{stats.tradeCount}</p>
         </div>
         <Link href={profileUrl} target="_blank" className="text-primary hover:underline">Open Profile</Link>

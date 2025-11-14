@@ -20,13 +20,31 @@ export async function GET(req: NextRequest) {
   const address = await resolveAddress(handle, addressParam || undefined)
   if (!address) return new Response(JSON.stringify({ error: "address_missing" }), { status: 400 })
   try {
-    const url = `https://data-api.polymarket.com/trades`
-    const res = await fetch(url, { headers: { "content-type": "application/json" }, cache: 'no-store' as any })
-    if (!res.ok) return new Response(JSON.stringify({ error: "trades_failed" }), { status: res.status })
-    const all = await res.json()
-    const userAll = Array.isArray(all) ? all.filter((t: any) => (t?.user || "").toLowerCase() === address.toLowerCase()) : []
-    const trades = userAll.slice(0, Math.max(1, Math.min(limit, 2000)))
-    const stats = userAll.reduce(
+    // Prefer direct user-filtered endpoint with pagination
+    let collected: any[] = []
+    let offset = 0
+    const pageSize = Math.min(1000, Math.max(100, limit))
+    for (let i = 0; i < 5; i++) {
+      const u = `https://data-api.polymarket.com/trades?user=${encodeURIComponent(address)}&limit=${pageSize}&offset=${offset}`
+      const r = await fetch(u, { headers: { "content-type": "application/json" }, cache: 'no-store' as any })
+      if (!r.ok) break
+      const arr = await r.json()
+      if (!Array.isArray(arr) || arr.length === 0) break
+      collected = collected.concat(arr)
+      if (collected.length >= limit) break
+      offset += arr.length
+    }
+    // Fallback: global trades filter if direct endpoint returned empty
+    if (collected.length === 0) {
+      const url = `https://data-api.polymarket.com/trades`
+      const res = await fetch(url, { headers: { "content-type": "application/json" }, cache: 'no-store' as any })
+      if (!res.ok) return new Response(JSON.stringify({ error: "trades_failed" }), { status: res.status })
+      const all = await res.json()
+      const userAll = Array.isArray(all) ? all.filter((t: any) => (t?.user || "").toLowerCase() === address.toLowerCase()) : []
+      collected = userAll
+    }
+    const trades = collected.slice(0, Math.max(1, Math.min(limit, 5000)))
+    const stats = trades.reduce(
       (acc: { volume: number; tradeCount: number; pnl: number }, t: any) => {
         const v = Number(t.size_usd) || 0
         acc.volume += v
