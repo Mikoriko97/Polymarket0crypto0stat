@@ -85,7 +85,7 @@ export function UserProfilesRotator({ addresses = [], handles = [], intervalMs =
           <AvatarFallback>{fallback}</AvatarFallback>
         </Avatar>
         <div className="grid gap-1">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>@polymarket</CardTitle>
           {address ? <p className="text-sm text-muted-foreground">{`${address.slice(0, 6)}...${address.slice(-4)}`}</p> : null}
         </div>
         <Badge className="ml-auto">Pro</Badge>

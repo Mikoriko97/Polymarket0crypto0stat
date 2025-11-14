@@ -191,6 +191,21 @@ export async function getMarketPriceHistory(clobTokenId: string, interval: "1d" 
   return data.history
 }
 
+export async function getAllMarketsByTagId(tagId: number, options: GetMarketsOptions & { pageSize?: number } = {}) {
+  const pageSize = options.pageSize ?? 200
+  const closed = options.closed ?? false
+  let offset = options.offset ?? 0
+  const out: GammaMarket[] = []
+  for (let i = 0; i < 50; i++) {
+    const batch = await getMarketsByTagId(tagId, { closed, limit: pageSize, offset })
+    if (!batch.length) break
+    out.push(...batch)
+    offset += batch.length
+    if (batch.length < pageSize) break
+  }
+  return out
+}
+
 export async function getTrades() {
   const response = await fetch('https://data-api.polymarket.com/trades');
   if (!response.ok) {

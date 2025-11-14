@@ -3,38 +3,10 @@ import Dashboard from "@/components/dashboard";
 import { UserProfilesRotator } from "@/components/user-profiles-rotator";
 import Footer from "@/components/footer";
 import CryptoMarketListClient from "@/components/crypto-market-list-client";
-import { getMarkets, getTrades } from "@/lib/gamma";
-import { Market } from "@/lib/types";
+import { getCryptoTagIdByName, getAllMarketsByTagId } from "@/lib/gamma";
 
 export const revalidate = 60;
 
-const CRYPTO_KEYWORDS = [
-  "crypto",
-  "bitcoin",
-  "ethereum",
-  "btc",
-  "eth",
-  "solana",
-  "sol",
-  "usdc",
-  "usdt",
-  "meme",
-  "token",
-  "altcoin",
-  "defi",
-  "nft",
-];
-
-function isCryptoMarket(market: Market): boolean {
-  const question = (market.question ?? "").toLowerCase();
-  const category = market.category?.toLowerCase() ?? "";
-
-  if (category === "crypto") {
-    return true;
-  }
-
-  return CRYPTO_KEYWORDS.some((keyword) => question.includes(keyword));
-}
 
 interface Trade {
   user: string;
@@ -51,8 +23,11 @@ interface UserTradesAccumulator {
 }
 
 export default async function Home() {
-  const allOpenMarkets = await getMarkets({ limit: 500 });
-  let markets = allOpenMarkets.filter(isCryptoMarket);
+  const cryptoTagId = await getCryptoTagIdByName("Crypto");
+  let markets: any[] = [];
+  if (cryptoTagId != null) {
+    markets = await getAllMarketsByTagId(cryptoTagId, { closed: false, pageSize: 300 });
+  }
 
   markets = markets.slice().sort((a, b) => {
     const idDiff = (b.id ?? 0) - (a.id ?? 0);
@@ -60,17 +35,12 @@ export default async function Home() {
     return (a.slug ?? "").localeCompare(b.slug ?? "");
   });
 
-  console.log(`[Home] crypto markets=${markets.length}`);
-
-  const trades: Trade[] = await getTrades();
-  const userTrades = trades.reduce((acc: UserTradesAccumulator, trade: Trade) => {
-    if (!acc[trade.user]) {
-      acc[trade.user] = { volume: 0, tradeCount: 0, user: trade.user };
-    }
-    acc[trade.user].volume += trade.size_usd;
-    acc[trade.user].tradeCount++;
-    return acc;
-  }, {} as UserTradesAccumulator);
+  console.log(`[Home] crypto markets(total)=${markets.length}`);
+  if (!markets.length) {
+    const { getMarkets } = await import("@/lib/gamma")
+    const allOpenMarkets = await getMarkets({ limit: 1000 })
+    markets = allOpenMarkets.filter(isCryptoMarket)
+  }
 
 
   return (
@@ -98,4 +68,27 @@ export default async function Home() {
       <Footer />
     </div>
   );
+}
+const CRYPTO_KEYWORDS = [
+  "crypto",
+  "bitcoin",
+  "ethereum",
+  "btc",
+  "eth",
+  "solana",
+  "sol",
+  "usdc",
+  "usdt",
+  "meme",
+  "token",
+  "altcoin",
+  "defi",
+  "nft",
+];
+
+function isCryptoMarket(market: any): boolean {
+  const question = (market?.question ?? "").toLowerCase();
+  const category = (market?.category ?? "").toLowerCase();
+  if (category === "crypto") return true;
+  return CRYPTO_KEYWORDS.some((keyword) => question.includes(keyword));
 }
